@@ -40,22 +40,27 @@ public class BalanceEnquriy extends JFrame implements ActionListener {
         b1.addActionListener(this);
         l3.add(b1);
 
-        int balance =0;
-        try{
+        double balance = 0;
+        try {
             Connn c = new Connn();
-            ResultSet resultSet = c.statement.executeQuery("Select * from bank where pin = '"+pin+"'");
-            while (resultSet.next()){
-                if (resultSet.getString("type").equals("Deposit")){
-                    balance += Integer.parseInt(resultSet.getString("amount"));
-                }else {
-                    balance -= Integer.parseInt(resultSet.getString("amount"));
+            try {
+                String query = "SELECT COALESCE(SUM(CASE WHEN type = 'Deposit' THEN amount ELSE -amount END), 0) as balance FROM bank WHERE pin = ?";
+                PreparedStatement pstmt = c.prepareStatement(query);
+                pstmt.setString(1, pin);
+                ResultSet resultSet = pstmt.executeQuery();
+
+                if (resultSet.next()) {
+                    balance = resultSet.getDouble("balance");
                 }
+            } finally {
+                c.close();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error retrieving balance. Please try again.");
             e.printStackTrace();
         }
 
-        label2.setText(""+balance);
+        label2.setText(String.format("%.2f", balance));
 
         setLayout(null);
         setSize(1550,1080);

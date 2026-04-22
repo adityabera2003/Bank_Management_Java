@@ -97,32 +97,66 @@ public class Login extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        try{
-            if (e.getSource()==button1){
-                Connn c = new Connn();
-                String cardno = textField2.getText();
-                String pin = passwordField3.getText();
-                String q = "select * from login where card_number = '"+cardno+"' and  pin = '"+pin+"'";
-                ResultSet resultSet = c.statement.executeQuery(q);
-                if (resultSet.next()){
-                    setVisible(false);
-                    new main_Class(pin);
-                }else {
-                    JOptionPane.showMessageDialog(null,"Incorrect Card Number or PIN");
+        try {
+            if (e.getSource() == button1) {
+                String cardno = textField2.getText().trim();
+                String pin = new String(passwordField3.getPassword()).trim();
+
+                // Input validation
+                if (cardno.isEmpty() || pin.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Please enter both Card Number and PIN");
+                    return;
                 }
 
+                if (!isValidCardNumber(cardno)) {
+                    JOptionPane.showMessageDialog(null, "Please enter a valid Card Number");
+                    return;
+                }
 
-            }else if (e.getSource() == button2){
+                if (!isValidPin(pin)) {
+                    JOptionPane.showMessageDialog(null, "PIN must be 4-6 digits");
+                    return;
+                }
+
+                Connn c = new Connn();
+                try {
+                    String query = "SELECT * FROM login WHERE card_number = ? AND pin = ?";
+                    PreparedStatement pstmt = c.prepareStatement(query);
+                    pstmt.setString(1, cardno);
+                    pstmt.setString(2, pin);
+                    ResultSet resultSet = pstmt.executeQuery();
+
+                    if (resultSet.next()) {
+                        setVisible(false);
+                        new main_Class(pin);
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Incorrect Card Number or PIN");
+                    }
+                } finally {
+                    c.close();
+                }
+
+            } else if (e.getSource() == button2) {
                 textField2.setText("");
                 passwordField3.setText("");
-            }else if (e.getSource() == button3){
+            } else if (e.getSource() == button3) {
                 new Signup();
                 setVisible(false);
             }
-        }catch (Exception E){
-            E.printStackTrace();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "An error occurred during login. Please try again.");
+            ex.printStackTrace();
         }
+    }
 
+    private boolean isValidCardNumber(String cardno) {
+        // Basic validation: should be numeric and reasonable length
+        return cardno.matches("\\d{10,19}");
+    }
+
+    private boolean isValidPin(String pin) {
+        // PIN should be 4-6 digits
+        return pin.matches("\\d{4,6}");
     }
 
     public static void main(String[] args) {

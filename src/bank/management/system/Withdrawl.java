@@ -64,40 +64,80 @@ public class Withdrawl extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if(e.getSource()==b1) {
+        if (e.getSource() == b1) {
             try {
-                String amount = textField.getText();
+                String amountText = textField.getText().trim();
                 Date date = new Date();
-                if (textField.getText().equals("")) {
+
+                if (amountText.isEmpty()) {
                     JOptionPane.showMessageDialog(null, "Please enter the Amount you want to withdraw");
-                } else {
-                    Connn c = new Connn();
-                    ResultSet resultSet = c.statement.executeQuery("select * from bank where pin = '" + pin + "'");
-                    int balance = 0;
-                    while (resultSet.next()) {
-                        if (resultSet.getString("type").equals("Deposit")) {
-                            balance += Integer.parseInt(resultSet.getString("amount"));
-                        } else {
-                            balance -= Integer.parseInt(resultSet.getString("amount"));
-                        }
+                    return;
+                }
+
+                // Validate amount
+                double amount;
+                try {
+                    amount = Double.parseDouble(amountText);
+                    if (amount <= 0) {
+                        JOptionPane.showMessageDialog(null, "Please enter a valid positive amount");
+                        return;
                     }
-                    if (balance < Integer.parseInt(amount)) {
-                        JOptionPane.showMessageDialog(null, "Insuffient Balance");
+                    if (amount > 10000) { // Max withdrawal limit
+                        JOptionPane.showMessageDialog(null, "Withdrawal amount cannot exceed Rs. 10,000");
+                        return;
+                    }
+                    if (amount % 100 != 0) { // Must be in multiples of 100
+                        JOptionPane.showMessageDialog(null, "Please enter amount in multiples of Rs. 100");
+                        return;
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(null, "Please enter a valid numeric amount");
+                    return;
+                }
+
+                Connn c = new Connn();
+                try {
+                    // Check balance
+                    String balanceQuery = "SELECT COALESCE(SUM(CASE WHEN type = 'Deposit' THEN amount ELSE -amount END), 0) as balance FROM bank WHERE pin = ?";
+                    PreparedStatement balanceStmt = c.prepareStatement(balanceQuery);
+                    balanceStmt.setString(1, pin);
+                    ResultSet rs = balanceStmt.executeQuery();
+
+                    double balance = 0;
+                    if (rs.next()) {
+                        balance = rs.getDouble("balance");
+                    }
+
+                    if (balance < amount) {
+                        JOptionPane.showMessageDialog(null, "Insufficient Balance");
                         return;
                     }
 
-                    c.statement.executeUpdate("insert into bank values('" + pin + "', '" + date + "', 'Withdrawl', '" + amount + "' )");
+                    // Perform withdrawal
+                    String insertQuery = "INSERT INTO bank (pin, date, type, amount) VALUES (?, ?, 'Withdrawl', ?)";
+                    PreparedStatement insertStmt = c.prepareStatement(insertQuery);
+                    insertStmt.setString(1, pin);
+                    insertStmt.setDate(2, new java.sql.Date(date.getTime()));
+                    insertStmt.setDouble(3, amount);
+                    insertStmt.executeUpdate();
+
                     JOptionPane.showMessageDialog(null, "Rs. " + amount + " Debited Successfully");
                     setVisible(false);
                     new main_Class(pin);
 
+                } finally {
+                    c.close();
                 }
-            } catch (Exception E) {
 
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "An error occurred during withdrawal. Please try again.");
+                ex.printStackTrace();
             }
-        } else if (e.getSource()==b2) {
+        } else if (e.getSource() == b2) {
             setVisible(false);
             new main_Class(pin);
+        }
+    }
         }
     }
 

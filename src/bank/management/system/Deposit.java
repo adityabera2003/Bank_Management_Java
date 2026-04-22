@@ -21,7 +21,7 @@ public class Deposit extends JFrame implements ActionListener {
         l3.setBounds(0,0,1550,830);
         add(l3);
 
-        JLabel label1 = new JLabel("ENETR AMOUNT YOU WANT TO DEPOSIT");
+        JLabel label1 = new JLabel("ENTER AMOUNT YOU WANT TO DEPOSIT");
         label1.setForeground(Color.WHITE);
         label1.setFont(new Font("System", Font.BOLD, 16));
         label1.setBounds(460,180,400,35);
@@ -61,26 +61,56 @@ public class Deposit extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         try {
-            String amount = textField.getText();
+            String amountText = textField.getText().trim();
             Date date = new Date();
-            if (e.getSource()==b1){
-                if (textField.getText().equals("")){
-                    JOptionPane.showMessageDialog(null,"Please enter the Amount you want to Deposit");
-                }else {
-                    Connn c = new Connn();
-                    c.statement.executeUpdate("insert into bank values('"+pin+"', '"+date+"','Deposit', '"+amount+"')");
-                    JOptionPane.showMessageDialog(null,"Rs. "+amount+" Deposited Successfully");
+
+            if (e.getSource() == b1) {
+                if (amountText.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Please enter the Amount you want to Deposit");
+                    return;
+                }
+
+                // Validate amount
+                double amount;
+                try {
+                    amount = Double.parseDouble(amountText);
+                    if (amount <= 0) {
+                        JOptionPane.showMessageDialog(null, "Please enter a valid positive amount");
+                        return;
+                    }
+                    if (amount > 1000000) { // Max deposit limit
+                        JOptionPane.showMessageDialog(null, "Deposit amount cannot exceed Rs. 1,000,000");
+                        return;
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(null, "Please enter a valid numeric amount");
+                    return;
+                }
+
+                Connn c = new Connn();
+                try {
+                    String query = "INSERT INTO bank (pin, date, type, amount) VALUES (?, ?, 'Deposit', ?)";
+                    PreparedStatement pstmt = c.prepareStatement(query);
+                    pstmt.setString(1, pin);
+                    pstmt.setDate(2, new java.sql.Date(date.getTime()));
+                    pstmt.setDouble(3, amount);
+                    pstmt.executeUpdate();
+
+                    JOptionPane.showMessageDialog(null, "Rs. " + amount + " Deposited Successfully");
                     setVisible(false);
                     new main_Class(pin);
+                } finally {
+                    c.close();
                 }
-            }else if (e.getSource()==b2){
+
+            } else if (e.getSource() == b2) {
                 setVisible(false);
                 new main_Class(pin);
             }
-        }catch (Exception E){
-            E.printStackTrace();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "An error occurred during deposit. Please try again.");
+            ex.printStackTrace();
         }
-
     }
 
     public static void main(String[] args) {

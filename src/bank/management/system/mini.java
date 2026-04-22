@@ -33,32 +33,63 @@ public class mini extends JFrame implements ActionListener {
         label4.setBounds(20,400,300,20);
         add(label4);
 
-        try{
+        try {
             Connn c = new Connn();
-            ResultSet resultSet = c.statement.executeQuery("select * from login where pin = '"+pin+"'");
-            while (resultSet.next()){
-                label3.setText("Card Number:  "+ resultSet.getString("card_number").substring(0,4) + "XXXXXXXX"+ resultSet.getString("card_number").substring(12));
+            try {
+                String query = "SELECT card_number FROM login WHERE pin = ?";
+                PreparedStatement pstmt = c.prepareStatement(query);
+                pstmt.setString(1, pin);
+                ResultSet resultSet = pstmt.executeQuery();
+                if (resultSet.next()) {
+                    String cardNumber = resultSet.getString("card_number");
+                    if (cardNumber.length() >= 16) {
+                        label3.setText("Card Number:  " + cardNumber.substring(0, 4) + "XXXXXXXX" + cardNumber.substring(12));
+                    } else {
+                        label3.setText("Card Number:  " + cardNumber);
+                    }
+                }
+            } finally {
+                c.close();
             }
-        }catch (Exception e ){
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error retrieving card information.");
             e.printStackTrace();
         }
 
-        try{
-            int balance =0;
+        try {
             Connn c = new Connn();
-            ResultSet resultSet = c.statement.executeQuery("select * from bank where pin = '"+pin+"'");
-            while (resultSet.next()){
+            try {
+                String query = "SELECT date, type, amount FROM bank WHERE pin = ? ORDER BY date DESC LIMIT 10";
+                PreparedStatement pstmt = c.prepareStatement(query);
+                pstmt.setString(1, pin);
+                ResultSet resultSet = pstmt.executeQuery();
 
-                label1.setText(label1.getText() + "<html>"+resultSet.getString("date")+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"+resultSet.getString("type")+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"+resultSet.getString("amount")+ "<br><br><html>");
+                StringBuilder statement = new StringBuilder("<html>");
+                double balance = 0;
 
-                if (resultSet.getString("type").equals("Deposit")){
-                    balance += Integer.parseInt(resultSet.getString("amount"));
-                }else {
-                    balance -= Integer.parseInt(resultSet.getString("amount"));
+                while (resultSet.next()) {
+                    String date = resultSet.getString("date");
+                    String type = resultSet.getString("type");
+                    double amount = resultSet.getDouble("amount");
+
+                    statement.append(date).append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+                            .append(type).append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+                            .append(String.format("%.2f", amount)).append("<br><br>");
+
+                    if ("Deposit".equals(type)) {
+                        balance += amount;
+                    } else {
+                        balance -= amount;
+                    }
                 }
+                statement.append("</html>");
+                label1.setText(statement.toString());
+                label4.setText("Your Total Balance is Rs " + String.format("%.2f", balance));
+            } finally {
+                c.close();
             }
-            label4.setText("Your Total Balance is Rs "+balance);
-        }catch (Exception e){
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error retrieving transaction history.");
             e.printStackTrace();
         }
 

@@ -190,47 +190,86 @@ public class Signup extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-
-        String formno = first;
-        String name = textName.getText();
-        String fname = textFname.getText();
-        String dob = ((JTextField) dateChooser.getDateEditor().getUiComponent()).getText();
+        String formno = first.trim();
+        String name = textName.getText().trim();
+        String fname = textFname.getText().trim();
+        String dob = "";
+        if (dateChooser.getDate() != null) {
+            dob = ((JTextField) dateChooser.getDateEditor().getUiComponent()).getText().trim();
+        }
         String gender = null;
-        if(r1.isSelected()){
+        if (r1.isSelected()) {
             gender = "Male";
-        }else if (r2.isSelected()){
+        } else if (r2.isSelected()) {
             gender = "Female";
         }
-        String email = textEmail.getText();
-        String marital =null;
-        if (m1.isSelected()){
+        String email = textEmail.getText().trim();
+        String marital = null;
+        if (m1.isSelected()) {
             marital = "Married";
         } else if (m2.isSelected()) {
             marital = "Unmarried";
         } else if (m3.isSelected()) {
             marital = "Other";
         }
+        String address = textAdd.getText().trim();
+        String city = textcity.getText().trim();
+        String pincode = textPin.getText().trim();
+        String state = textState.getText().trim();
 
-        String address = textAdd.getText();
-        String city = textcity.getText();
-        String pincode = textPin.getText();
-        String state = textState.getText();
-
-        try{
-            if (textName.getText().equals("")){
-                JOptionPane.showMessageDialog(null, "Fill all the fields");
-            }else {
-                Connn c = new Connn();
-                String q = "insert into signup values('"+formno+"', '"+name+"','"+fname+"','"+dob+"','"+gender+"','"+email+"','"+marital+"', '"+address+"', '"+city+"','"+pincode+"','"+state+"' )";
-                c.statement.executeUpdate(q);
-                new Signup2(formno);
-                setVisible(false);
-            }
-
-        }catch (Exception E){
-            E.printStackTrace();
+        // Input validation
+        if (name.isEmpty() || fname.isEmpty() || dob.isEmpty() || gender == null ||
+            email.isEmpty() || marital == null || address.isEmpty() ||
+            city.isEmpty() || pincode.isEmpty() || state.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Please fill all the required fields");
+            return;
         }
 
+        if (!isValidEmail(email)) {
+            JOptionPane.showMessageDialog(null, "Please enter a valid email address");
+            return;
+        }
+
+        if (!isValidPincode(pincode)) {
+            JOptionPane.showMessageDialog(null, "Please enter a valid 6-digit pincode");
+            return;
+        }
+
+        try {
+            Connn c = new Connn();
+            try {
+                String query = "INSERT INTO signup (formno, name, fname, dob, gender, email, marital, address, city, pincode, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                PreparedStatement pstmt = c.prepareStatement(query);
+                pstmt.setString(1, formno);
+                pstmt.setString(2, name);
+                pstmt.setString(3, fname);
+                pstmt.setString(4, dob);
+                pstmt.setString(5, gender);
+                pstmt.setString(6, email);
+                pstmt.setString(7, marital);
+                pstmt.setString(8, address);
+                pstmt.setString(9, city);
+                pstmt.setString(10, pincode);
+                pstmt.setString(11, state);
+                pstmt.executeUpdate();
+
+                new Signup2(formno);
+                setVisible(false);
+            } finally {
+                c.close();
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "An error occurred during signup. Please try again.");
+            ex.printStackTrace();
+        }
+    }
+
+    private boolean isValidEmail(String email) {
+        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    private boolean isValidPincode(String pincode) {
+        return pincode.matches("\\d{6}");
     }
 
     public static void main(String[] args) {

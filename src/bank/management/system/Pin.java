@@ -78,51 +78,70 @@ public class Pin extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        try {
+            String pin1 = new String(p1.getPassword()).trim();
+            String pin2 = new String(p2.getPassword()).trim();
 
-        try{
-
-            String pin1 = p1.getText();
-            String pin2 = p2.getText();
-
-            if (!pin1.equals(pin2)){
-                JOptionPane.showMessageDialog(null,"Entered PIN does not match");
-                return;
-            }
-            if (e.getSource()==b1){
-                if (p1.getText().equals("")){
-                    JOptionPane.showMessageDialog(null,"Enter New PIN");
+            if (e.getSource() == b1) {
+                // Input validation
+                if (pin1.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Please enter New PIN");
                     return;
                 }
-                if (p2.getText().equals("")){
-                    JOptionPane.showMessageDialog(null,"Re-Enter New PIN");
+                if (pin2.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Please re-enter New PIN");
+                    return;
+                }
+                if (!isValidPin(pin1)) {
+                    JOptionPane.showMessageDialog(null, "PIN must be 4-6 digits");
+                    return;
+                }
+                if (!pin1.equals(pin2)) {
+                    JOptionPane.showMessageDialog(null, "Entered PINs do not match");
+                    return;
+                }
+                if (pin1.equals(pin)) {
+                    JOptionPane.showMessageDialog(null, "New PIN must be different from current PIN");
                     return;
                 }
 
                 Connn c = new Connn();
-                String q1 = "update bank set pin = '"+pin1+"' where pin = '"+pin+"'";
-                String q2 = "update login set pin = '"+pin1+"' where pin = '"+pin+"'";
-                String q3 = "update signupthree set pin = '"+pin1+"' where pin = '"+pin+"'";
+                try {
+                    // Update PIN in all relevant tables
+                    String[] queries = {
+                        "UPDATE bank SET pin = ? WHERE pin = ?",
+                        "UPDATE login SET pin = ? WHERE pin = ?",
+                        "UPDATE signupthree SET pin = ? WHERE pin = ?"
+                    };
 
-                c.statement.executeUpdate(q1);
-                c.statement.executeUpdate(q2);
-                c.statement.executeUpdate(q3);
+                    for (String query : queries) {
+                        PreparedStatement pstmt = c.prepareStatement(query);
+                        pstmt.setString(1, pin1);
+                        pstmt.setString(2, pin);
+                        pstmt.executeUpdate();
+                    }
 
-                JOptionPane.showMessageDialog(null,"PIN changed successfully");
+                    JOptionPane.showMessageDialog(null, "PIN changed successfully");
+                    setVisible(false);
+                    new main_Class(pin1); // Use new PIN for main class
+
+                } finally {
+                    c.close();
+                }
+
+            } else if (e.getSource() == b2) {
                 setVisible(false);
                 new main_Class(pin);
-
-            } else if (e.getSource()==b2) {
-                new main_Class(pin);
-                setVisible(false);
             }
 
-
-        }catch (Exception E){
-            E.printStackTrace();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "An error occurred while changing PIN. Please try again.");
+            ex.printStackTrace();
         }
+    }
 
-
-
+    private boolean isValidPin(String pin) {
+        return pin.matches("\\d{4,6}");
     }
 
     public static void main(String[] args) {
