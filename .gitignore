@@ -28,6 +28,7 @@ replay_pid*
 *.iml
 *.ipr
 *.iws
+out/
 
 # Eclipse
 .classpath
